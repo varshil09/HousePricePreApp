@@ -3,222 +3,348 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ames House Price Predictor</title>
+    <title>Ames House Price Predictor - Advanced Analytics</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Chart.js Data Labels Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js"></script>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>🏠 Ames House Price Predictor</h1>
-            <p>Enter key house details to get an accurate price estimate using Ridge Regression</p>
+            <p>Advanced Analytics & Visualization Dashboard</p>
         </header>
 
-        <main>
-            <div class="prediction-card">
-                <h2>Key House Details</h2>
-                <form id="predictionForm">
-                    <!-- Size & Area Section -->
-                    <h3 class="section-title">📏 Size & Area</h3>
+        <!-- Navigation Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('predictor')">🏡 Price Predictor</button>
+            <button class="tab-btn" onclick="switchTab('analytics')">📊 Analytics Dashboard</button>
+            <button class="tab-btn" onclick="switchTab('insights')">💡 Market Insights</button>
+        </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="GrLivArea">Living Area (sq ft):</label>
-                            <input type="number" id="GrLivArea" name="GrLivArea" required min="300" max="10000" value="1500">
-                            <small>Above grade living area</small>
+        <!-- Tab 1: Price Predictor -->
+        <div id="predictor-tab" class="tab-content active">
+            <main>
+                <div class="prediction-card">
+                    <h2>Key House Details</h2>
+                    <form id="predictionForm">
+                        <!-- Size & Area Section -->
+                        <h3 class="section-title">📏 Size & Area</h3>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="GrLivArea">Living Area (sq ft):</label>
+                                <input type="number" id="GrLivArea" name="GrLivArea" required min="300" max="10000" value="1500">
+                                <small>Above grade living area</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="LotArea">Lot Area (sq ft):</label>
+                                <input type="number" id="LotArea" name="LotArea" required min="1000" max="200000" value="10000">
+                                <small>Total lot size</small>
+                            </div>
                         </div>
 
-                        <div class="form-group">
-                            <label for="LotArea">Lot Area (sq ft):</label>
-                            <input type="number" id="LotArea" name="LotArea" required min="1000" max="200000" value="10000">
-                            <small>Total lot size</small>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="TotalBsmtSF">Basement Area (sq ft):</label>
+                                <input type="number" id="TotalBsmtSF" name="TotalBsmtSF" required min="0" max="10000" value="800">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="1stFlrSF">First Floor SF:</label>
+                                <input type="number" id="1stFlrSF" name="1stFlrSF" required min="300" max="10000" value="1000">
+                            </div>
                         </div>
+
+                        <!-- Quality & Age Section -->
+                        <h3 class="section-title">⭐ Quality & Age</h3>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="OverallQual">Overall Quality (1-10):</label>
+                                <input type="number" id="OverallQual" name="OverallQual" required min="1" max="10" value="7">
+                                <small>1=Poor, 10=Excellent</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="OverallCond">Overall Condition (1-10):</label>
+                                <input type="number" id="OverallCond" name="OverallCond" required min="1" max="10" value="5">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="YearBuilt">Year Built:</label>
+                                <input type="number" id="YearBuilt" name="YearBuilt" required min="1800" max="2025" value="2000">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="YearRemodAdd">Year Remodeled:</label>
+                                <input type="number" id="YearRemodAdd" name="YearRemodAdd" required min="1800" max="2025" value="2000">
+                            </div>
+                        </div>
+
+                        <!-- Rooms Section -->
+                        <h3 class="section-title">🛏️ Rooms</h3>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="BedroomAbvGr">Bedrooms:</label>
+                                <input type="number" id="BedroomAbvGr" name="BedroomAbvGr" required min="0" max="10" value="3">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="FullBath">Full Bathrooms:</label>
+                                <input type="number" id="FullBath" name="FullBath" required min="0" max="5" value="2">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="HalfBath">Half Bathrooms:</label>
+                                <input type="number" id="HalfBath" name="HalfBath" required min="0" max="3" value="1">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="Fireplaces">Fireplaces:</label>
+                                <input type="number" id="Fireplaces" name="Fireplaces" required min="0" max="4" value="1">
+                            </div>
+                        </div>
+
+                        <!-- Garage Section -->
+                        <h3 class="section-title">🚗 Garage</h3>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="GarageCars">Garage Capacity (cars):</label>
+                                <input type="number" id="GarageCars" name="GarageCars" required min="0" max="5" value="2">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="GarageArea">Garage Area (sq ft):</label>
+                                <input type="number" id="GarageArea" name="GarageArea" required min="0" max="2000" value="500">
+                            </div>
+                        </div>
+
+                        <!-- Location Section -->
+                        <h3 class="section-title">📍 Location</h3>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="Neighborhood">Neighborhood:</label>
+                                <select id="Neighborhood" name="Neighborhood" required>
+                                    <option value="NAmes">North Ames</option>
+                                    <option value="CollgCr">College Creek</option>
+                                    <option value="OldTown">Old Town</option>
+                                    <option value="Edwards">Edwards</option>
+                                    <option value="Somerst">Somerset</option>
+                                    <option value="Gilbert">Gilbert</option>
+                                    <option value="NridgHt">Northridge Heights</option>
+                                    <option value="NoRidge">Northridge</option>
+                                    <option value="Timber">Timberland</option>
+                                    <option value="StoneBr">Stone Brook</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="MSZoning">Zoning:</label>
+                                <select id="MSZoning" name="MSZoning" required>
+                                    <option value="RL">Residential Low Density</option>
+                                    <option value="RM">Residential Medium Density</option>
+                                    <option value="FV">Floating Village</option>
+                                    <option value="RH">Residential High Density</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Outdoor Section -->
+                        <h3 class="section-title">🌳 Outdoor</h3>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="WoodDeckSF">Wood Deck Area (sq ft):</label>
+                                <input type="number" id="WoodDeckSF" name="WoodDeckSF" required min="0" max="1000" value="100">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="OpenPorchSF">Open Porch Area (sq ft):</label>
+                                <input type="number" id="OpenPorchSF" name="OpenPorchSF" required min="0" max="1000" value="50">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="predict-btn">Predict Price</button>
+                    </form>
+
+                    <div id="result" class="result-container" style="display: none;">
+                        <h2>Estimated Price:</h2>
+                        <div id="price" class="price">$0.00</div>
+                        <div class="price-range">
+                            <small>Confidence Range (90-110%):</small>
+                            <div id="range"></div>
+                        </div>
+                        <div class="model-badge">Ridge Regression</div>
                     </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="TotalBsmtSF">Basement Area (sq ft):</label>
-                            <input type="number" id="TotalBsmtSF" name="TotalBsmtSF" required min="0" max="10000" value="800">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="1stFlrSF">First Floor SF:</label>
-                            <input type="number" id="1stFlrSF" name="1stFlrSF" required min="300" max="10000" value="1000">
-                        </div>
+                    <div id="error" class="error-container" style="display: none;">
+                        <p>❌ Error: <span id="errorMessage"></span></p>
                     </div>
-
-                    <!-- Quality & Age Section -->
-                    <h3 class="section-title">⭐ Quality & Age</h3>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="OverallQual">Overall Quality (1-10):</label>
-                            <input type="number" id="OverallQual" name="OverallQual" required min="1" max="10" value="7">
-                            <small>1=Poor, 10=Excellent</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="OverallCond">Overall Condition (1-10):</label>
-                            <input type="number" id="OverallCond" name="OverallCond" required min="1" max="10" value="5">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="YearBuilt">Year Built:</label>
-                            <input type="number" id="YearBuilt" name="YearBuilt" required min="1800" max="2025" value="2000">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="YearRemodAdd">Year Remodeled:</label>
-                            <input type="number" id="YearRemodAdd" name="YearRemodAdd" required min="1800" max="2025" value="2000">
-                        </div>
-                    </div>
-
-                    <!-- Rooms Section -->
-                    <h3 class="section-title">🛏️ Rooms</h3>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="BedroomAbvGr">Bedrooms:</label>
-                            <input type="number" id="BedroomAbvGr" name="BedroomAbvGr" required min="0" max="10" value="3">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="FullBath">Full Bathrooms:</label>
-                            <input type="number" id="FullBath" name="FullBath" required min="0" max="5" value="2">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="HalfBath">Half Bathrooms:</label>
-                            <input type="number" id="HalfBath" name="HalfBath" required min="0" max="3" value="1">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="Fireplaces">Fireplaces:</label>
-                            <input type="number" id="Fireplaces" name="Fireplaces" required min="0" max="4" value="1">
-                        </div>
-                    </div>
-
-                    <!-- Garage Section -->
-                    <h3 class="section-title">🚗 Garage</h3>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="GarageCars">Garage Capacity (cars):</label>
-                            <input type="number" id="GarageCars" name="GarageCars" required min="0" max="5" value="2">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="GarageArea">Garage Area (sq ft):</label>
-                            <input type="number" id="GarageArea" name="GarageArea" required min="0" max="2000" value="500">
-                        </div>
-                    </div>
-
-                    <!-- Location Section -->
-                    <h3 class="section-title">📍 Location</h3>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="Neighborhood">Neighborhood:</label>
-                            <select id="Neighborhood" name="Neighborhood" required>
-                                <option value="NAmes">North Ames</option>
-                                <option value="CollgCr">College Creek</option>
-                                <option value="OldTown">Old Town</option>
-                                <option value="Edwards">Edwards</option>
-                                <option value="Somerst">Somerset</option>
-                                <option value="Gilbert">Gilbert</option>
-                                <option value="NridgHt">Northridge Heights</option>
-                                <option value="NoRidge">Northridge</option>
-                                <option value="Timber">Timberland</option>
-                                <option value="StoneBr">Stone Brook</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="MSZoning">Zoning:</label>
-                            <select id="MSZoning" name="MSZoning" required>
-                                <option value="RL">Residential Low Density</option>
-                                <option value="RM">Residential Medium Density</option>
-                                <option value="FV">Floating Village</option>
-                                <option value="RH">Residential High Density</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Outdoor Section -->
-                    <h3 class="section-title">🌳 Outdoor</h3>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="WoodDeckSF">Wood Deck Area (sq ft):</label>
-                            <input type="number" id="WoodDeckSF" name="WoodDeckSF" required min="0" max="1000" value="100">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="OpenPorchSF">Open Porch Area (sq ft):</label>
-                            <input type="number" id="OpenPorchSF" name="OpenPorchSF" required min="0" max="1000" value="50">
-                        </div>
-                    </div>
-
-                    <button type="submit" class="predict-btn">Predict Price</button>
-                </form>
-
-                <div id="result" class="result-container" style="display: none;">
-                    <h2>Estimated Price:</h2>
-                    <div id="price" class="price">$0.00</div>
-                    <div class="price-range">
-                        <small>Confidence Range (92-108%):</small>
-                        <div id="range"></div>
-                    </div>
-                    <div class="model-badge">Ridge Regression</div>
                 </div>
 
-                <div id="error" class="error-container" style="display: none;">
-                    <p>❌ Error: <span id="errorMessage"></span></p>
+                <div class="info-card">
+                    <h3>📊 Model Information</h3>
+
+                    <div class="stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Model Type:</span>
+                            <span class="stat-value">Ridge Regression</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Key Features:</span>
+                            <span class="stat-value">22</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Accuracy (R²):</span>
+                            <span class="stat-value">~88-90%</span>
+                        </div>
+                    </div>
+
+                    <h4>🏆 Top Features Affecting Price:</h4>
+                    <ol class="feature-list">
+                        <li><strong>Overall Quality</strong> - Most important factor</li>
+                        <li><strong>Living Area (GrLivArea)</strong> - Larger = more expensive</li>
+                        <li><strong>Year Built</strong> - Newer houses cost more</li>
+                        <li><strong>Neighborhood</strong> - Location matters!</li>
+                        <li><strong>Garage Size</strong> - More cars = higher value</li>
+                        <li><strong>Basement Area</strong> - Finished basement adds value</li>
+                        <li><strong>Fireplaces</strong> - Desirable feature</li>
+                        <li><strong>Lot Area</strong> - Bigger lot = more value</li>
+                    </ol>
+
+                    <p class="note">⚠️ Note: This is an estimate based on Ames, Iowa housing data (2006-2010).</p>
+                </div>
+            </main>
+        </div>
+
+        <!-- Tab 2: Analytics Dashboard -->
+        <div id="analytics-tab" class="tab-content">
+            <div class="dashboard">
+                <!-- Key Metrics Cards -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <h3>Average Price</h3>
+                        <div class="metric-value" id="avg-price">$---</div>
+                        <small>Mean sale price</small>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Median Price</h3>
+                        <div class="metric-value" id="median-price">$---</div>
+                        <small>50th percentile</small>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Price Range</h3>
+                        <div class="metric-value" id="price-range">$---</div>
+                        <small>Min - Max</small>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Total Houses</h3>
+                        <div class="metric-value" id="total-houses">---</div>
+                        <small>In dataset</small>
+                    </div>
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>📈 Price Distribution</h3>
+                        <canvas id="priceHistogram"></canvas>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3>🔥 Feature Correlation Heatmap</h3>
+                        <canvas id="correlationHeatmap"></canvas>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3>💰 Price by Neighborhood</h3>
+                        <canvas id="neighborhoodChart"></canvas>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3>📅 Price Trends Over Years</h3>
+                        <canvas id="yearTrendChart"></canvas>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3>⭐ Price by Overall Quality</h3>
+                        <canvas id="qualityChart"></canvas>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3>🎯 Top 15 Feature Importance</h3>
+                        <canvas id="featureImportanceChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Interactive Scatter Plot -->
+                <div class="chart-card full-width">
+                    <h3>📊 Interactive Scatter Plot</h3>
+                    <div class="scatter-controls">
+                        <label>X-Axis Feature:</label>
+                        <select id="scatterFeature">
+                            <option value="GrLivArea">Living Area (sq ft)</option>
+                            <option value="TotalBsmtSF">Basement Area (sq ft)</option>
+                            <option value="LotArea">Lot Area (sq ft)</option>
+                            <option value="OverallQual">Overall Quality</option>
+                            <option value="YearBuilt">Year Built</option>
+                            <option value="GarageCars">Garage Cars</option>
+                            <option value="FullBath">Full Bathrooms</option>
+                        </select>
+                        <button id="updateScatter" class="btn-small">Update Chart</button>
+                    </div>
+                    <canvas id="scatterPlot"></canvas>
                 </div>
             </div>
+        </div>
 
-            <div class="info-card">
-                <h3>📊 Model Information</h3>
+        <!-- Tab 3: Market Insights -->
+        <div id="insights-tab" class="tab-content">
+            <div class="insights-dashboard">
+                <h2>🏘️ Market Insights & Recommendations</h2>
 
-                <div class="stats">
-                    <div class="stat-item">
-                        <span class="stat-label">Model Type:</span>
-                        <span class="stat-value">Ridge Regression</span>
+                <div class="insights-grid">
+                    <div class="insight-card">
+                        <h3>📍 Best Neighborhoods for Investment</h3>
+                        <div id="best-neighborhoods" class="insight-list"></div>
                     </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Key Features:</span>
-                        <span class="stat-value">22</span>
+
+                    <div class="insight-card">
+                        <h3>💎 Most Valuable Features</h3>
+                        <div id="valuable-features" class="insight-list"></div>
                     </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Accuracy (R²):</span>
-                        <span class="stat-value">~88-90%</span>
+
+                    <div class="insight-card">
+                        <h3>📈 Price Appreciation Factors</h3>
+                        <div id="appreciation-factors" class="insight-list"></div>
+                    </div>
+
+                    <div class="insight-card">
+                        <h3>⚠️ Price Depreciation Factors</h3>
+                        <div id="depreciation-factors" class="insight-list"></div>
+                    </div>
+
+                    <div class="insight-card full-width">
+                        <h3>💡 Investment Recommendations</h3>
+                        <div id="recommendations" class="recommendations-text"></div>
                     </div>
                 </div>
-
-                <h4>🏆 Top Features Affecting Price:</h4>
-                <ol class="feature-list">
-                    <li><strong>Overall Quality</strong> - Most important factor</li>
-                    <li><strong>Living Area (GrLivArea)</strong> - Larger = more expensive</li>
-                    <li><strong>Year Built</strong> - Newer houses cost more</li>
-                    <li><strong>Neighborhood</strong> - Location matters!</li>
-                    <li><strong>Garage Size</strong> - More cars = higher value</li>
-                    <li><strong>Basement Area</strong> - Finished basement adds value</li>
-                    <li><strong>Fireplaces</strong> - Desirable feature</li>
-                    <li><strong>Lot Area</strong> - Bigger lot = more value</li>
-                </ol>
-
-                <h4>💡 Why Ridge Regression?</h4>
-                <p>Ridge Regression reduces overfitting by penalizing large coefficients, making it more accurate than standard Linear Regression for house price prediction.</p>
-
-                <p class="note">⚠️ Note: This is an estimate based on Ames, Iowa housing data (2006-2010). Actual prices may vary.</p>
             </div>
-        </main>
+        </div>
 
         <footer>
-            <p>Ames House Price Predictor | Ridge Regression | 22 Key Features</p>
+            <p>Ames House Price Predictor | Ridge Regression | Advanced Analytics Dashboard</p>
         </footer>
     </div>
 
