@@ -1,47 +1,224 @@
-// Global chart instances
+// Global variables
 let charts = {};
+let plotlyChart = null;
 
-// Tab switching function
+// Tab switching
 function switchTab(tabName) {
-    // Hide all tabs
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
     });
-
-    // Remove active class from all buttons
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-
-    // Show selected tab
     document.getElementById(`${tabName}-tab`).classList.add('active');
-
-    // Add active class to clicked button
     event.target.classList.add('active');
 
-    // Refresh charts when switching to analytics tab
     if (tabName === 'analytics') {
         setTimeout(() => {
-            refreshAllCharts();
+            loadStatistics();
+            updateChart();
+            loadNeighborhoodChart();
+            loadYearTrendChart();
+            loadQualityChart();
+            loadFeatureImportance();
         }, 100);
     }
 
-    // Load insights when switching to insights tab
+    if (tabName === 'correlation') {
+        setTimeout(() => {
+            updateHeatmap();
+            loadPriceDistribution();
+            loadBoxplot();
+            loadCorrelationTable();
+        }, 100);
+    }
+
     if (tabName === 'insights') {
         loadInsights();
     }
 }
 
-// Refresh all charts
-async function refreshAllCharts() {
-    await loadStatistics();
-    await loadPriceDistribution();
-    await loadCorrelationHeatmap();
-    await loadNeighborhoodChart();
-    await loadYearTrendChart();
-    await loadQualityChart();
-    await loadFeatureImportance();
-    await loadScatterPlot('GrLivArea');
+// Change chart type between 2D and 3D
+function changeChartType() {
+    const chartType = document.getElementById('chartType').value;
+    const controls2D = document.getElementById('controls2D');
+    const controls3D = document.getElementById('controls3D');
+    const chartTitle = document.getElementById('chartTitle');
+
+    if (chartType === '2d') {
+        controls2D.style.display = 'flex';
+        controls3D.style.display = 'none';
+        chartTitle.innerHTML = '📊 2D Scatter Plot';
+    } else {
+        controls2D.style.display = 'none';
+        controls3D.style.display = 'flex';
+        chartTitle.innerHTML = '🎯 3D Scatter Plot';
+    }
+    updateChart();
+}
+
+// Main chart update function
+async function updateChart() {
+    const chartType = document.getElementById('chartType').value;
+    
+    if (chartType === '2d') {
+        await render2DScatter();
+    } else {
+        await render3DScatter();
+    }
+}
+
+// Render 2D Scatter Plot
+async function render2DScatter() {
+    const xFeature = document.getElementById('axisX_2d').value;
+    const colorFeature = document.getElementById('colorBy_2d').value;
+
+    try {
+        const response = await fetch(`http://localhost:5000/api/scatter-data?x=${xFeature}&color=${colorFeature}`);
+        const data = await response.json();
+
+        const trace = {
+            x: data.x,
+            y: data.prices,
+            mode: 'markers',
+            type: 'scatter',
+            marker: {
+                size: 8,
+                color: data.color_values,
+                colorscale: 'Viridis',
+                showscale: true,
+                colorbar: {
+                    title: colorFeature.replace(/([A-Z])/g, ' $1').trim(),
+                    thickness: 20
+                },
+                opacity: 0.7,
+                line: {
+                    width: 0.5,
+                    color: 'rgba(0,0,0,0.3)'
+                }
+            },
+            text: data.hover_text,
+            hoverinfo: 'text'
+        };
+
+        const layout = {
+            title: {
+                text: `${xFeature.replace(/([A-Z])/g, ' $1').trim()} vs Sale Price`,
+                font: { size: 16 }
+            },
+            xaxis: {
+                title: xFeature.replace(/([A-Z])/g, ' $1').trim(),
+                gridcolor: '#e0e0e0',
+                zerolinecolor: '#cccccc'
+            },
+            yaxis: {
+                title: 'Sale Price ($)',
+                tickformat: '$,.0f',
+                gridcolor: '#e0e0e0',
+                zerolinecolor: '#cccccc'
+            },
+            height: 600,
+            margin: { l: 70, r: 70, t: 60, b: 50 },
+            plot_bgcolor: '#fafafa',
+            paper_bgcolor: '#ffffff',
+            hovermode: 'closest'
+        };
+
+        Plotly.newPlot('plotlyChart', [trace], layout);
+        plotlyChart = true;
+
+    } catch (error) {
+        console.error('Error rendering 2D scatter:', error);
+        showChartError();
+    }
+}
+
+// Render 3D Scatter Plot
+async function render3DScatter() {
+    const xFeature = document.getElementById('axisX_3d').value;
+    const yFeature = document.getElementById('axisY_3d').value;
+
+    try {
+        const response = await fetch(`http://localhost:5000/api/3d-scatter-data?x=${xFeature}&y=${yFeature}`);
+        const data = await response.json();
+
+        const trace = {
+            x: data.x,
+            y: data.y,
+            z: data.prices,
+            mode: 'markers',
+            type: 'scatter3d',
+            marker: {
+                size: 4,
+                color: data.prices,
+                colorscale: 'Viridis',
+                showscale: true,
+                colorbar: {
+                    title: 'Sale Price ($)',
+                    tickformat: '$,.0f'
+                },
+                opacity: 0.8,
+                line: {
+                    width: 0
+                }
+            },
+            text: data.hover_text,
+            hoverinfo: 'text'
+        };
+
+        const layout = {
+            title: {
+                text: `3D: ${xFeature.replace(/([A-Z])/g, ' $1').trim()} vs ${yFeature.replace(/([A-Z])/g, ' $1').trim()} vs Price`,
+                font: { size: 16 }
+            },
+            scene: {
+                xaxis: {
+                    title: xFeature.replace(/([A-Z])/g, ' $1').trim(),
+                    gridcolor: '#e0e0e0',
+                    gridwidth: 1
+                },
+                yaxis: {
+                    title: yFeature.replace(/([A-Z])/g, ' $1').trim(),
+                    gridcolor: '#e0e0e0',
+                    gridwidth: 1
+                },
+                zaxis: {
+                    title: 'Sale Price ($)',
+                    tickformat: '$,.0f',
+                    gridcolor: '#e0e0e0',
+                    gridwidth: 1
+                },
+                camera: {
+                    eye: { x: 1.5, y: 1.5, z: 1.5 }
+                }
+            },
+            height: 600,
+            margin: { l: 0, r: 0, b: 0, t: 60 },
+            paper_bgcolor: '#ffffff'
+        };
+
+        Plotly.newPlot('plotlyChart', [trace], layout);
+        plotlyChart = true;
+
+    } catch (error) {
+        console.error('Error rendering 3D scatter:', error);
+        showChartError();
+    }
+}
+
+function showChartError() {
+    const container = document.getElementById('plotlyChart');
+    if (container) {
+        container.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8f9fa; border-radius: 12px;">
+                <div style="text-align: center;">
+                    <p style="color: #c0392b; font-size: 18px;">⚠️ Could not load chart data</p>
+                    <p style="color: #666;">Make sure Flask backend is running on port 5000</p>
+                    <p style="color: #666; font-size: 12px;">Run: python app.py</p>
+                </div>
+            </div>
+        `;
+    }
 }
 
 // Load statistics
@@ -54,144 +231,8 @@ async function loadStatistics() {
         document.getElementById('median-price').textContent = `$${data.median_price.toLocaleString()}`;
         document.getElementById('price-range').textContent = `$${data.min_price.toLocaleString()} - $${data.max_price.toLocaleString()}`;
         document.getElementById('total-houses').textContent = data.total_houses.toLocaleString();
-
-        // Update prediction card stats
-        document.getElementById('avg-living-area').textContent = Math.round(data.avg_living_area).toLocaleString();
-        document.getElementById('avg-lot-area').textContent = Math.round(data.avg_lot_area).toLocaleString();
-        document.getElementById('avg-quality').textContent = data.avg_qual_rating.toFixed(1);
     } catch (error) {
         console.error('Error loading statistics:', error);
-    }
-}
-
-// Load price distribution histogram
-async function loadPriceDistribution() {
-    try {
-        const response = await fetch('http://localhost:5000/api/price-distribution');
-        const data = await response.json();
-
-        const ctx = document.getElementById('priceHistogram').getContext('2d');
-
-        // Create histogram bins
-        const minPrice = Math.min(...data.prices);
-        const maxPrice = Math.max(...data.prices);
-        const binCount = 30;
-        const binWidth = (maxPrice - minPrice) / binCount;
-
-        const bins = Array(binCount).fill(0);
-        data.prices.forEach(price => {
-            const binIndex = Math.min(Math.floor((price - minPrice) / binWidth), binCount - 1);
-            bins[binIndex]++;
-        });
-
-        const labels = Array(binCount).fill().map((_, i) => {
-            const start = minPrice + i * binWidth;
-            const end = start + binWidth;
-            return `$${Math.round(start/1000)}k-$${Math.round(end/1000)}k`;
-        });
-
-        if (charts.priceHistogram) charts.priceHistogram.destroy();
-
-        charts.priceHistogram = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Number of Houses',
-                    data: bins,
-                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: { position: 'top' },
-                    tooltip: { callbacks: { label: (ctx) => `${ctx.raw} houses` } }
-                },
-                scales: {
-                    y: { title: { display: true, text: 'Frequency' } },
-                    x: { title: { display: true, text: 'Price Range' }, ticks: { rotation: 45 } }
-                }
-            }
-        });
-    } catch (error) {
-        console.error('Error loading price distribution:', error);
-    }
-}
-
-// Load correlation heatmap
-async function loadCorrelationHeatmap() {
-    try {
-        const response = await fetch('http://localhost:5000/api/feature-correlation');
-        const data = await response.json();
-
-        const ctx = document.getElementById('correlationHeatmap').getContext('2d');
-
-        // Prepare data for heatmap (using a custom chart)
-        const features = data.features;
-        const matrix = data.matrix;
-
-        // Create dataset for heatmap
-        const heatmapData = [];
-        for (let i = 0; i < features.length; i++) {
-            for (let j = 0; j < features.length; j++) {
-                heatmapData.push({
-                    x: j,
-                    y: i,
-                    v: matrix[i][j]
-                });
-            }
-        }
-
-        if (charts.correlationHeatmap) charts.correlationHeatmap.destroy();
-
-        charts.correlationHeatmap = new Chart(ctx, {
-            type: 'scatter',
-            data: {
-                datasets: [{
-                    label: 'Correlation',
-                    data: heatmapData,
-                    backgroundColor: heatmapData.map(d => {
-                        const value = Math.abs(d.v);
-                        if (value > 0.7) return 'rgba(255, 99, 132, 0.8)';
-                        if (value > 0.4) return 'rgba(255, 159, 64, 0.8)';
-                        if (value > 0.2) return 'rgba(255, 205, 86, 0.8)';
-                        return 'rgba(75, 192, 192, 0.8)';
-                    }),
-                    pointRadius: 20,
-                    pointHoverRadius: 25
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: (context) => {
-                                const dataPoint = context.raw;
-                                return `${features[dataPoint.y]} vs ${features[dataPoint.x]}: ${dataPoint.v.toFixed(2)}`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        title: { display: true, text: 'Features' },
-                        ticks: { callback: (val) => features[val], autoSkip: false, rotation: 45 }
-                    },
-                    y: {
-                        title: { display: true, text: 'Features' },
-                        ticks: { callback: (val) => features[val] }
-                    }
-                }
-            }
-        });
-    } catch (error) {
-        console.error('Error loading correlation heatmap:', error);
     }
 }
 
@@ -203,9 +244,8 @@ async function loadNeighborhoodChart() {
 
         const ctx = document.getElementById('neighborhoodChart').getContext('2d');
 
-        // Take top 10 neighborhoods
         const topNeighborhoods = data.neighborhoods.slice(0, 10);
-        const topPrices = data.prices.slice(0, 10);
+        const topPrices = data.means.slice(0, 10);
 
         if (charts.neighborhoodChart) charts.neighborhoodChart.destroy();
 
@@ -225,8 +265,11 @@ async function loadNeighborhoodChart() {
                 responsive: true,
                 maintainAspectRatio: true,
                 plugins: {
-                    legend: { position: 'top' },
-                    tooltip: { callbacks: { label: (ctx) => `$${ctx.raw.toLocaleString()}` } }
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => `$${ctx.raw.toLocaleString()}`
+                        }
+                    }
                 },
                 scales: {
                     y: {
@@ -255,20 +298,34 @@ async function loadYearTrendChart() {
             type: 'line',
             data: {
                 labels: data.years,
-                datasets: [{
-                    label: 'Average Price',
-                    data: data.prices,
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    fill: true,
-                    tension: 0.4
-                }]
+                datasets: [
+                    {
+                        label: 'Average Price',
+                        data: data.means,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Median Price',
+                        data: data.medians,
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
                 plugins: {
-                    tooltip: { callbacks: { label: (ctx) => `$${ctx.raw.toLocaleString()}` } }
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => `$${ctx.raw.toLocaleString()}`
+                        }
+                    }
                 },
                 scales: {
                     y: {
@@ -365,10 +422,10 @@ async function loadFeatureImportance() {
         charts.featureImportanceChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: data.features,
+                labels: data.features.slice(0, 15),
                 datasets: [{
                     label: 'Importance Score',
-                    data: data.importance,
+                    data: data.importance.slice(0, 15),
                     backgroundColor: 'rgba(255, 159, 64, 0.7)',
                     borderColor: 'rgba(255, 159, 64, 1)',
                     borderWidth: 1
@@ -379,7 +436,11 @@ async function loadFeatureImportance() {
                 responsive: true,
                 maintainAspectRatio: true,
                 plugins: {
-                    tooltip: { callbacks: { label: (ctx) => ctx.raw.toFixed(4) } }
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => ctx.raw.toFixed(4)
+                        }
+                    }
                 },
                 scales: {
                     x: { title: { display: true, text: 'Importance' } }
@@ -391,77 +452,190 @@ async function loadFeatureImportance() {
     }
 }
 
-// Load scatter plot
-async function loadScatterPlot(feature) {
+// Update heatmap
+async function updateHeatmap() {
     try {
-        const response = await fetch(`http://localhost:5000/api/scatter-data?feature=${feature}`);
+        const response = await fetch('http://localhost:5000/api/correlation-matrix');
         const data = await response.json();
 
-        const ctx = document.getElementById('scatterPlot').getContext('2d');
+        const featureCount = document.getElementById('featureCount').value;
+        const colorScheme = document.getElementById('colorScheme').value;
 
-        const scatterData = data.x.map((x, i) => ({ x: x, y: data.y[i] }));
+        let features = [...data.features];
+        let matrix = data.matrix.map(row => [...row]);
 
-        if (charts.scatterPlot) charts.scatterPlot.destroy();
+        if (featureCount !== 'all') {
+            const count = parseInt(featureCount);
+            const salePriceIndex = features.indexOf('SalePrice');
+            const correlations = matrix.map(row => Math.abs(row[salePriceIndex]));
+            const indices = correlations.map((_, i) => i).sort((a, b) => correlations[b] - correlations[a]);
+            const topIndices = indices.slice(0, count);
+            features = topIndices.map(i => features[i]);
+            matrix = topIndices.map(i => topIndices.map(j => data.matrix[i][j]));
+        }
 
-        charts.scatterPlot = new Chart(ctx, {
-            type: 'scatter',
+        const heatmapTrace = {
+            z: matrix,
+            x: features,
+            y: features,
+            type: 'heatmap',
+            colorscale: colorScheme,
+            showscale: true,
+            zmin: -1,
+            zmax: 1,
+            text: matrix.map(row => row.map(val => val.toFixed(2))),
+            texttemplate: '%{text}',
+            textfont: { size: 10 },
+            hoverongaps: false
+        };
+
+        const layout = {
+            title: 'Feature Correlation Matrix',
+            xaxis: { title: 'Features', tickangle: -45, tickfont: { size: 10 } },
+            yaxis: { title: 'Features', tickfont: { size: 10 } },
+            height: 800,
+            width: Math.max(800, features.length * 35),
+            margin: { l: 120, r: 20, t: 60, b: 120 }
+        };
+
+        Plotly.newPlot('correlationHeatmap', [heatmapTrace], layout);
+    } catch (error) {
+        console.error('Error updating heatmap:', error);
+    }
+}
+
+// Load correlation table
+async function loadCorrelationTable() {
+    try {
+        const response = await fetch('http://localhost:5000/api/feature-correlation');
+        const data = await response.json();
+
+        let html = '<table class="data-table"><thead><tr><th>Feature</th>';
+        data.features.forEach(f => {
+            html += `<th>${f}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+
+        for (let i = 0; i < data.features.length; i++) {
+            html += `<tr><td><strong>${data.features[i]}</strong></td>`;
+            for (let j = 0; j < data.matrix[i].length; j++) {
+                const value = data.matrix[i][j];
+                let colorClass = '';
+                if (Math.abs(value) > 0.7) colorClass = 'corr-high';
+                else if (Math.abs(value) > 0.4) colorClass = 'corr-medium';
+                else if (Math.abs(value) > 0.2) colorClass = 'corr-low';
+                html += `<td class="${colorClass}">${value.toFixed(2)}</td>`;
+            }
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+
+        document.getElementById('correlationTable').innerHTML = html;
+    } catch (error) {
+        console.error('Error loading correlation table:', error);
+    }
+}
+
+// Load price distribution histogram
+async function loadPriceDistribution() {
+    try {
+        const response = await fetch('http://localhost:5000/api/price-distribution');
+        const data = await response.json();
+
+        const ctx = document.getElementById('priceHistogram').getContext('2d');
+
+        const minPrice = Math.min(...data.prices);
+        const maxPrice = Math.max(...data.prices);
+        const binCount = 40;
+        const binWidth = (maxPrice - minPrice) / binCount;
+
+        const bins = Array(binCount).fill(0);
+        data.prices.forEach(price => {
+            const binIndex = Math.min(Math.floor((price - minPrice) / binWidth), binCount - 1);
+            bins[binIndex]++;
+        });
+
+        const labels = Array(binCount).fill().map((_, i) => {
+            const start = minPrice + i * binWidth;
+            const end = start + binWidth;
+            return `$${Math.round(start / 1000)}k-$${Math.round(end / 1000)}k`;
+        });
+
+        if (charts.priceHistogram) charts.priceHistogram.destroy();
+
+        charts.priceHistogram = new Chart(ctx, {
+            type: 'bar',
             data: {
+                labels: labels,
                 datasets: [{
-                    label: `Price vs ${feature}`,
-                    data: scatterData,
-                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                    pointRadius: 5,
-                    pointHoverRadius: 8
+                    label: 'Number of Houses',
+                    data: bins,
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: (context) => {
-                                return `${feature}: ${context.raw.x.toLocaleString()}, Price: $${context.raw.y.toLocaleString()}`;
-                            }
-                        }
-                    }
-                },
+                plugins: { legend: { position: 'top' } },
                 scales: {
-                    x: {
-                        title: { display: true, text: feature },
-                        ticks: { callback: (val) => val.toLocaleString() }
-                    },
-                    y: {
-                        title: { display: true, text: 'Price ($)' },
-                        ticks: { callback: (val) => `$${val.toLocaleString()}` }
-                    }
+                    y: { title: { display: true, text: 'Frequency' } },
+                    x: { ticks: { rotation: 45, autoSkip: true, maxTicksLimit: 10 } }
                 }
             }
         });
     } catch (error) {
-        console.error('Error loading scatter plot:', error);
+        console.error('Error loading price distribution:', error);
+    }
+}
+
+// Load boxplot
+async function loadBoxplot() {
+    try {
+        const response = await fetch('http://localhost:5000/api/boxplot-data?feature=Neighborhood');
+        const data = await response.json();
+
+        const trace = {
+            y: data.data,
+            type: 'box',
+            name: data.categories,
+            boxpoints: 'all',
+            jitter: 0.3,
+            pointpos: -1.8,
+            marker: { color: 'rgba(54, 162, 235, 0.5)' }
+        };
+
+        const layout = {
+            title: 'Price Distribution by Neighborhood',
+            xaxis: { title: 'Neighborhood', tickangle: -45 },
+            yaxis: { title: 'Price ($)', tickformat: '$,.0f' },
+            height: 500
+        };
+
+        Plotly.newPlot('boxplotChart', [trace], layout);
+    } catch (error) {
+        console.error('Error loading boxplot:', error);
     }
 }
 
 // Load insights
 async function loadInsights() {
     try {
-        // Load neighborhood insights
         const neighborhoodResponse = await fetch('http://localhost:5000/api/price-by-neighborhood');
         const neighborhoodData = await neighborhoodResponse.json();
 
         const topNeighborhoods = neighborhoodData.neighborhoods.slice(0, 5);
-        const topPrices = neighborhoodData.prices.slice(0, 5);
+        const topPrices = neighborhoodData.means.slice(0, 5);
 
         const bestNeighborhoodsHtml = topNeighborhoods.map((hood, i) =>
             `<div class="insight-item">
                 <strong>${hood}</strong>: $${topPrices[i].toLocaleString()}
-                <span class="badge">Top ${i+1}</span>
+                <span class="badge">Top ${i + 1}</span>
             </div>`
         ).join('');
         document.getElementById('best-neighborhoods').innerHTML = bestNeighborhoodsHtml;
 
-        // Load feature importance for valuable features
         const importanceResponse = await fetch('http://localhost:5000/api/feature-importance');
         const importanceData = await importanceResponse.json();
 
@@ -476,7 +650,6 @@ async function loadInsights() {
         ).join('');
         document.getElementById('valuable-features').innerHTML = valuableFeaturesHtml;
 
-        // Price appreciation factors
         const appreciationFactors = [
             "🏗️ <strong>Higher Overall Quality</strong> - Each point increase adds ~15-20% to value",
             "📐 <strong>Larger Living Area</strong> - Every 100 sq ft adds ~$15,000",
@@ -486,7 +659,6 @@ async function loadInsights() {
         ];
         document.getElementById('appreciation-factors').innerHTML = appreciationFactors.map(f => `<div class="insight-item">${f}</div>`).join('');
 
-        // Price depreciation factors
         const depreciationFactors = [
             "📅 <strong>Older Construction</strong> - Each decade older reduces value by ~5-8%",
             "🔧 <strong>Poor Condition</strong> - Below average condition reduces value by ~20%",
@@ -496,7 +668,6 @@ async function loadInsights() {
         ];
         document.getElementById('depreciation-factors').innerHTML = depreciationFactors.map(f => `<div class="insight-item">${f}</div>`).join('');
 
-        // Investment recommendations
         const recommendations = `
             <p>🎯 <strong>Best Investment Strategy:</strong></p>
             <ul>
@@ -509,7 +680,6 @@ async function loadInsights() {
             <p>💰 <strong>Expected ROI:</strong> Properties in top neighborhoods with high quality ratings typically appreciate 5-8% annually.</p>
         `;
         document.getElementById('recommendations').innerHTML = recommendations;
-
     } catch (error) {
         console.error('Error loading insights:', error);
     }
@@ -524,18 +694,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const rangeSpan = document.getElementById('range');
     const errorMessageSpan = document.getElementById('errorMessage');
     const predictBtn = document.querySelector('.predict-btn');
-
-    // Load initial statistics
-    loadStatistics();
-
-    // Scatter plot update button
-    const updateScatterBtn = document.getElementById('updateScatter');
-    if (updateScatterBtn) {
-        updateScatterBtn.addEventListener('click', () => {
-            const feature = document.getElementById('scatterFeature').value;
-            loadScatterPlot(feature);
-        });
-    }
 
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -629,13 +787,5 @@ document.addEventListener('DOMContentLoaded', function() {
             if (value < min) this.value = min;
             if (value > max) this.value = max;
         });
-    });
-
-    const yearBuilt = document.getElementById('YearBuilt');
-    const yearRemod = document.getElementById('YearRemodAdd');
-    yearBuilt.addEventListener('change', function() {
-        if (!yearRemod.value || yearRemod.value < this.value) {
-            yearRemod.value = this.value;
-        }
     });
 });

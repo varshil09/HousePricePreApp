@@ -3,24 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ames House Price Predictor - Advanced Analytics</title>
+    <title>Ames House Price Predictor - 3D Analytics Dashboard</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Plotly CDN for 3D charts -->
+    <script src="https://cdn.plot.ly/plotly-3.1.0.min.js" charset="utf-8"></script>
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <!-- Chart.js Data Labels Plugin -->
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js"></script>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>🏠 Ames House Price Predictor</h1>
-            <p>Advanced Analytics & Visualization Dashboard</p>
+            <p>Advanced 3D Analytics & Machine Learning Dashboard</p>
         </header>
 
         <!-- Navigation Tabs -->
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('predictor')">🏡 Price Predictor</button>
-            <button class="tab-btn" onclick="switchTab('analytics')">📊 Analytics Dashboard</button>
+            <button class="tab-btn" onclick="switchTab('analytics')">📊 3D Analytics Dashboard</button>
+            <button class="tab-btn" onclick="switchTab('correlation')">🔥 Correlation Analysis</button>
             <button class="tab-btn" onclick="switchTab('insights')">💡 Market Insights</button>
         </div>
 
@@ -30,20 +31,16 @@
                 <div class="prediction-card">
                     <h2>Key House Details</h2>
                     <form id="predictionForm">
-                        <!-- Size & Area Section -->
                         <h3 class="section-title">📏 Size & Area</h3>
-
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="GrLivArea">Living Area (sq ft):</label>
                                 <input type="number" id="GrLivArea" name="GrLivArea" required min="300" max="10000" value="1500">
                                 <small>Above grade living area</small>
                             </div>
-
                             <div class="form-group">
                                 <label for="LotArea">Lot Area (sq ft):</label>
                                 <input type="number" id="LotArea" name="LotArea" required min="1000" max="200000" value="10000">
-                                <small>Total lot size</small>
                             </div>
                         </div>
 
@@ -52,23 +49,18 @@
                                 <label for="TotalBsmtSF">Basement Area (sq ft):</label>
                                 <input type="number" id="TotalBsmtSF" name="TotalBsmtSF" required min="0" max="10000" value="800">
                             </div>
-
                             <div class="form-group">
                                 <label for="1stFlrSF">First Floor SF:</label>
                                 <input type="number" id="1stFlrSF" name="1stFlrSF" required min="300" max="10000" value="1000">
                             </div>
                         </div>
 
-                        <!-- Quality & Age Section -->
                         <h3 class="section-title">⭐ Quality & Age</h3>
-
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="OverallQual">Overall Quality (1-10):</label>
                                 <input type="number" id="OverallQual" name="OverallQual" required min="1" max="10" value="7">
-                                <small>1=Poor, 10=Excellent</small>
                             </div>
-
                             <div class="form-group">
                                 <label for="OverallCond">Overall Condition (1-10):</label>
                                 <input type="number" id="OverallCond" name="OverallCond" required min="1" max="10" value="5">
@@ -80,22 +72,18 @@
                                 <label for="YearBuilt">Year Built:</label>
                                 <input type="number" id="YearBuilt" name="YearBuilt" required min="1800" max="2025" value="2000">
                             </div>
-
                             <div class="form-group">
                                 <label for="YearRemodAdd">Year Remodeled:</label>
                                 <input type="number" id="YearRemodAdd" name="YearRemodAdd" required min="1800" max="2025" value="2000">
                             </div>
                         </div>
 
-                        <!-- Rooms Section -->
                         <h3 class="section-title">🛏️ Rooms</h3>
-
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="BedroomAbvGr">Bedrooms:</label>
                                 <input type="number" id="BedroomAbvGr" name="BedroomAbvGr" required min="0" max="10" value="3">
                             </div>
-
                             <div class="form-group">
                                 <label for="FullBath">Full Bathrooms:</label>
                                 <input type="number" id="FullBath" name="FullBath" required min="0" max="5" value="2">
@@ -107,31 +95,25 @@
                                 <label for="HalfBath">Half Bathrooms:</label>
                                 <input type="number" id="HalfBath" name="HalfBath" required min="0" max="3" value="1">
                             </div>
-
                             <div class="form-group">
                                 <label for="Fireplaces">Fireplaces:</label>
                                 <input type="number" id="Fireplaces" name="Fireplaces" required min="0" max="4" value="1">
                             </div>
                         </div>
 
-                        <!-- Garage Section -->
                         <h3 class="section-title">🚗 Garage</h3>
-
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="GarageCars">Garage Capacity (cars):</label>
                                 <input type="number" id="GarageCars" name="GarageCars" required min="0" max="5" value="2">
                             </div>
-
                             <div class="form-group">
                                 <label for="GarageArea">Garage Area (sq ft):</label>
                                 <input type="number" id="GarageArea" name="GarageArea" required min="0" max="2000" value="500">
                             </div>
                         </div>
 
-                        <!-- Location Section -->
                         <h3 class="section-title">📍 Location</h3>
-
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="Neighborhood">Neighborhood:</label>
@@ -148,7 +130,6 @@
                                     <option value="StoneBr">Stone Brook</option>
                                 </select>
                             </div>
-
                             <div class="form-group">
                                 <label for="MSZoning">Zoning:</label>
                                 <select id="MSZoning" name="MSZoning" required>
@@ -160,15 +141,12 @@
                             </div>
                         </div>
 
-                        <!-- Outdoor Section -->
                         <h3 class="section-title">🌳 Outdoor</h3>
-
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="WoodDeckSF">Wood Deck Area (sq ft):</label>
                                 <input type="number" id="WoodDeckSF" name="WoodDeckSF" required min="0" max="1000" value="100">
                             </div>
-
                             <div class="form-group">
                                 <label for="OpenPorchSF">Open Porch Area (sq ft):</label>
                                 <input type="number" id="OpenPorchSF" name="OpenPorchSF" required min="0" max="1000" value="50">
@@ -195,7 +173,6 @@
 
                 <div class="info-card">
                     <h3>📊 Model Information</h3>
-
                     <div class="stats">
                         <div class="stat-item">
                             <span class="stat-label">Model Type:</span>
@@ -214,7 +191,7 @@
                     <h4>🏆 Top Features Affecting Price:</h4>
                     <ol class="feature-list">
                         <li><strong>Overall Quality</strong> - Most important factor</li>
-                        <li><strong>Living Area (GrLivArea)</strong> - Larger = more expensive</li>
+                        <li><strong>Living Area</strong> - Larger = more expensive</li>
                         <li><strong>Year Built</strong> - Newer houses cost more</li>
                         <li><strong>Neighborhood</strong> - Location matters!</li>
                         <li><strong>Garage Size</strong> - More cars = higher value</li>
@@ -228,7 +205,7 @@
             </main>
         </div>
 
-        <!-- Tab 2: Analytics Dashboard -->
+        <!-- Tab 2: 3D Analytics Dashboard (UPDATED: Only 2D and 3D Scatter Plots) -->
         <div id="analytics-tab" class="tab-content">
             <div class="dashboard">
                 <!-- Key Metrics Cards -->
@@ -255,18 +232,79 @@
                     </div>
                 </div>
 
-                <!-- Charts Grid -->
+                <!-- Chart Type Selector - Only 2D and 3D Scatter -->
+                <div class="chart-controls">
+                    <div class="control-group">
+                        <label>Chart Type:</label>
+                        <select id="chartType" onchange="changeChartType()">
+                            <option value="2d">2D Scatter Plot</option>
+                            <option value="3d">3D Scatter Plot</option>
+                        </select>
+                    </div>
+
+                    <!-- 2D Axis Controls (visible by default) -->
+                    <div id="controls2D" class="axis-controls">
+                        <div class="control-group">
+                            <label>X-Axis:</label>
+                            <select id="axisX_2d" onchange="updateChart()">
+                                <option value="GrLivArea">Living Area (sq ft)</option>
+                                <option value="TotalBsmtSF">Basement Area (sq ft)</option>
+                                <option value="LotArea">Lot Area (sq ft)</option>
+                                <option value="OverallQual">Overall Quality (1-10)</option>
+                                <option value="YearBuilt">Year Built</option>
+                                <option value="GarageCars">Garage Capacity</option>
+                                <option value="BedroomAbvGr">Bedrooms</option>
+                                <option value="FullBath">Full Bathrooms</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Color By:</label>
+                            <select id="colorBy_2d" onchange="updateChart()">
+                                <option value="OverallQual">Overall Quality</option>
+                                <option value="YearBuilt">Year Built</option>
+                                <option value="GarageCars">Garage Capacity</option>
+                                <option value="TotalBsmtSF">Basement Area</option>
+                                <option value="LotArea">Lot Area</option>
+                                <option value="BedroomAbvGr">Bedrooms</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 3D Axis Controls (hidden by default) -->
+                    <div id="controls3D" class="axis-controls" style="display: none;">
+                        <div class="control-group">
+                            <label>X-Axis:</label>
+                            <select id="axisX_3d" onchange="updateChart()">
+                                <option value="GrLivArea">Living Area (sq ft)</option>
+                                <option value="TotalBsmtSF">Basement Area (sq ft)</option>
+                                <option value="LotArea">Lot Area (sq ft)</option>
+                                <option value="OverallQual">Overall Quality (1-10)</option>
+                                <option value="YearBuilt">Year Built</option>
+                                <option value="GarageCars">Garage Capacity</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Y-Axis:</label>
+                            <select id="axisY_3d" onchange="updateChart()">
+                                <option value="OverallQual">Overall Quality (1-10)</option>
+                                <option value="GrLivArea">Living Area (sq ft)</option>
+                                <option value="TotalBsmtSF">Basement Area (sq ft)</option>
+                                <option value="YearBuilt">Year Built</option>
+                                <option value="GarageCars">Garage Capacity</option>
+                                <option value="LotArea">Lot Area (sq ft)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart Container -->
+                <div class="chart-card full-width">
+                    <h3 id="chartTitle">📊 2D Scatter Plot</h3>
+                    <div id="plotlyChart" style="height: 600px;"></div>
+                </div>
+
+                <!-- Additional Charts -->
                 <div class="charts-grid">
-                    <div class="chart-card">
-                        <h3>📈 Price Distribution</h3>
-                        <canvas id="priceHistogram"></canvas>
-                    </div>
-
-                    <div class="chart-card">
-                        <h3>🔥 Feature Correlation Heatmap</h3>
-                        <canvas id="correlationHeatmap"></canvas>
-                    </div>
-
                     <div class="chart-card">
                         <h3>💰 Price by Neighborhood</h3>
                         <canvas id="neighborhoodChart"></canvas>
@@ -287,32 +325,56 @@
                         <canvas id="featureImportanceChart"></canvas>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <!-- Interactive Scatter Plot -->
+        <!-- Tab 3: Correlation Analysis -->
+        <div id="correlation-tab" class="tab-content">
+            <div class="dashboard">
                 <div class="chart-card full-width">
-                    <h3>📊 Interactive Scatter Plot</h3>
-                    <div class="scatter-controls">
-                        <label>X-Axis Feature:</label>
-                        <select id="scatterFeature">
-                            <option value="GrLivArea">Living Area (sq ft)</option>
-                            <option value="TotalBsmtSF">Basement Area (sq ft)</option>
-                            <option value="LotArea">Lot Area (sq ft)</option>
-                            <option value="OverallQual">Overall Quality</option>
-                            <option value="YearBuilt">Year Built</option>
-                            <option value="GarageCars">Garage Cars</option>
-                            <option value="FullBath">Full Bathrooms</option>
+                    <h3>🔥 Interactive Correlation Heatmap</h3>
+                    <div class="heatmap-controls">
+                        <label>Number of Features:</label>
+                        <select id="featureCount" onchange="updateHeatmap()">
+                            <option value="10">Top 10 Features</option>
+                            <option value="15">Top 15 Features</option>
+                            <option value="20">Top 20 Features</option>
+                            <option value="all">All Features</option>
                         </select>
-                        <button id="updateScatter" class="btn-small">Update Chart</button>
+                        <label>Color Scheme:</label>
+                        <select id="colorScheme" onchange="updateHeatmap()">
+                            <option value="RdBu">Red-Blue (RdBu)</option>
+                            <option value="Viridis">Viridis</option>
+                            <option value="Plasma">Plasma</option>
+                            <option value="Cividis">Cividis</option>
+                        </select>
                     </div>
-                    <canvas id="scatterPlot"></canvas>
+                    <div id="correlationHeatmap" style="height: 800px;"></div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>📈 Price Distribution</h3>
+                        <canvas id="priceHistogram"></canvas>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3>📊 Box Plot by Neighborhood</h3>
+                        <div id="boxplotChart" style="height: 500px;"></div>
+                    </div>
+                </div>
+
+                <div class="chart-card full-width">
+                    <h3>📋 Correlation Matrix Table</h3>
+                    <div id="correlationTable" class="correlation-table"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Tab 3: Market Insights -->
+        <!-- Tab 4: Market Insights -->
         <div id="insights-tab" class="tab-content">
             <div class="insights-dashboard">
-                <h2>🏘️ Market Insights & Recommendations</h2>
+                <h2>🏘️ Market Insights & Investment Recommendations</h2>
 
                 <div class="insights-grid">
                     <div class="insight-card">
@@ -344,7 +406,7 @@
         </div>
 
         <footer>
-            <p>Ames House Price Predictor | Ridge Regression | Advanced Analytics Dashboard</p>
+            <p>Ames House Price Predictor | Ridge Regression | 2D & 3D Analytics Dashboard</p>
         </footer>
     </div>
 
