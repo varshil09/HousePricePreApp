@@ -10,15 +10,28 @@ warnings.filterwarnings('ignore')
 app = Flask(__name__)
 CORS(app)
 
-# Load the model and preprocessors
-model_path = os.path.join(os.path.dirname(__file__), '..', 'model', 'ridge_model.pkl')
-scaler_path = os.path.join(os.path.dirname(__file__), '..', 'model', 'scaler.pkl')
-encoders_path = os.path.join(os.path.dirname(__file__), '..', 'model', 'label_encoders.pkl')
-imputation_path = os.path.join(os.path.dirname(__file__), '..', 'model', 'imputation_values.pkl')
-feature_info_path = os.path.join(os.path.dirname(__file__), '..', 'model', 'feature_info.pkl')
+# Get the absolute paths
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)  # Go up to project root
 
-# Load training data for visualizations
-train_df = pd.read_csv('data/train.csv')
+# Model paths (looking for 'model' or 'models' folder)
+model_folder = os.path.join(project_root, 'model')
+if not os.path.exists(model_folder):
+    model_folder = os.path.join(project_root, 'models')
+
+model_path = os.path.join(model_folder, 'ridge_model.pkl')
+scaler_path = os.path.join(model_folder, 'scaler.pkl')
+encoders_path = os.path.join(model_folder, 'label_encoders.pkl')
+imputation_path = os.path.join(model_folder, 'imputation_values.pkl')
+feature_info_path = os.path.join(model_folder, 'feature_info.pkl')
+
+# Load training data
+train_data_path = os.path.join(current_dir, 'data', 'train.csv')
+train_df = pd.read_csv(train_data_path)
+
+print(f"Project root: {project_root}")
+print(f"Model folder: {model_folder}")
+print(f"Train data path: {train_data_path}")
 
 # Load models
 try:
@@ -30,10 +43,10 @@ try:
     print("✅ Model loaded successfully!")
 except Exception as e:
     print(f"❌ Error loading model: {e}")
-    print("Please run 'python model.py' first to train the model.")
+    print(f"Please ensure model files exist in: {model_folder}")
     exit(1)
 
-# Calculate statistics for visualizations
+# Calculate statistics
 mean_price = train_df['SalePrice'].mean()
 median_price = train_df['SalePrice'].median()
 std_price = train_df['SalePrice'].std()
@@ -45,15 +58,10 @@ def home():
     return jsonify({
         'message': 'Ames House Price Prediction API',
         'model': 'Ridge Regression',
-        'features': len(feature_info['features']) if feature_info else 22,
+        'features': len(feature_info['features']),
         'training_samples': len(train_df),
-        'avg_price': f"${mean_price:,.0f}",
-        'status': 'running'
+        'avg_price': f"${mean_price:,.0f}"
     })
-
-@app.route('/health', methods=['GET'])
-def health():
-    return jsonify({'status': 'healthy'})
 
 @app.route('/api/statistics', methods=['GET'])
 def get_statistics():
@@ -68,47 +76,54 @@ def get_statistics():
         'avg_living_area': float(train_df['GrLivArea'].mean()),
         'avg_lot_area': float(train_df['LotArea'].mean()),
         'avg_qual_rating': float(train_df['OverallQual'].mean()),
-        'avg_garage_cars': float(train_df['GarageCars'].mean())
+        'avg_garage_cars': float(train_df['GarageCars'].mean()),
+        'avg_year_built': float(train_df['YearBuilt'].mean())
     })
 
 @app.route('/api/price-distribution', methods=['GET'])
 def get_price_distribution():
     """Get price distribution data for histogram"""
     prices = train_df['SalePrice'].tolist()
+    return jsonify({'prices': prices})
+
+@app.route('/api/correlation-matrix', methods=['GET'])
+def get_correlation_matrix():
+    """Get full correlation matrix for all numeric features"""
+    numeric_features = train_df.select_dtypes(include=[np.number]).columns.tolist()
+    if 'Id' in numeric_features:
+        numeric_features.remove('Id')
+
+    correlation_matrix = train_df[numeric_features].corr().round(2)
+
     return jsonify({
-        'prices': prices,
-        'bins': 50
+        'features': numeric_features,
+        'matrix': correlation_matrix.values.tolist()
     })
 
 @app.route('/api/feature-correlation', methods=['GET'])
 def get_feature_correlation():
-    """Get correlation matrix for key features"""
-    # Select key features for correlation
+    """Get correlation with SalePrice for key features"""
     key_features = ['SalePrice', 'GrLivArea', 'TotalBsmtSF', 'LotArea',
-                    'OverallQual', 'YearBuilt', 'GarageCars', 'FullBath']
+                    'OverallQual', 'YearBuilt', 'GarageCars', 'FullBath',
+                    'BedroomAbvGr', 'Fireplaces', 'WoodDeckSF', 'OpenPorchSF']
 
     correlation_matrix = train_df[key_features].corr().round(2)
 
-    # Convert to list of lists for JSON
-    correlation_data = {
+    return jsonify({
         'features': key_features,
         'matrix': correlation_matrix.values.tolist()
-    }
-
-    return jsonify(correlation_data)
+    })
 
 @app.route('/api/feature-importance', methods=['GET'])
 def get_feature_importance():
     """Get feature importance based on model coefficients"""
-    # Get coefficients from trained model
     coefficients = model.coef_
     feature_names = feature_info['all_features']
 
-    # Get top 15 features
     importance_df = pd.DataFrame({
         'feature': feature_names,
         'importance': np.abs(coefficients)
-    }).sort_values('importance', ascending=False).head(15)
+    }).sort_values('importance', ascending=False).head(20)
 
     return jsonify({
         'features': importance_df['feature'].tolist(),
@@ -118,71 +133,143 @@ def get_feature_importance():
 @app.route('/api/price-by-neighborhood', methods=['GET'])
 def get_price_by_neighborhood():
     """Get average price by neighborhood"""
-    neighborhood_prices = train_df.groupby('Neighborhood')['SalePrice'].agg(['mean', 'count']).reset_index()
-    neighborhood_prices = neighborhood_prices.sort_values('mean', ascending=False)
+    neighborhood_stats = train_df.groupby('Neighborhood')['SalePrice'].agg(['mean', 'median', 'count', 'std']).reset_index()
+    neighborhood_stats = neighborhood_stats.sort_values('mean', ascending=False)
 
     return jsonify({
-        'neighborhoods': neighborhood_prices['Neighborhood'].tolist(),
-        'prices': neighborhood_prices['mean'].tolist(),
-        'counts': neighborhood_prices['count'].tolist()
+        'neighborhoods': neighborhood_stats['Neighborhood'].tolist(),
+        'means': neighborhood_stats['mean'].tolist(),
+        'medians': neighborhood_stats['median'].tolist(),
+        'counts': neighborhood_stats['count'].tolist(),
+        'stds': neighborhood_stats['std'].tolist()
     })
 
 @app.route('/api/price-over-time', methods=['GET'])
 def get_price_over_time():
     """Get average price by year built"""
-    yearly_prices = train_df.groupby('YearBuilt')['SalePrice'].mean().reset_index()
-    yearly_counts = train_df.groupby('YearBuilt').size().reset_index(name='count')
+    yearly_stats = train_df.groupby('YearBuilt')['SalePrice'].agg(['mean', 'median', 'count']).reset_index()
 
     return jsonify({
-        'years': yearly_prices['YearBuilt'].tolist(),
-        'prices': yearly_prices['SalePrice'].tolist(),
-        'counts': yearly_counts['count'].tolist()
+        'years': yearly_stats['YearBuilt'].tolist(),
+        'means': yearly_stats['mean'].tolist(),
+        'medians': yearly_stats['median'].tolist(),
+        'counts': yearly_stats['count'].tolist()
     })
 
 @app.route('/api/price-by-quality', methods=['GET'])
 def get_price_by_quality():
     """Get price distribution by overall quality"""
-    quality_stats = train_df.groupby('OverallQual')['SalePrice'].agg(['mean', 'min', 'max', 'count']).reset_index()
+    quality_stats = train_df.groupby('OverallQual')['SalePrice'].agg(['mean', 'min', 'max', 'count', 'std']).reset_index()
 
     return jsonify({
         'qualities': quality_stats['OverallQual'].tolist(),
         'means': quality_stats['mean'].tolist(),
         'mins': quality_stats['min'].tolist(),
         'maxs': quality_stats['max'].tolist(),
-        'counts': quality_stats['count'].tolist()
+        'counts': quality_stats['count'].tolist(),
+        'stds': quality_stats['std'].tolist()
     })
 
 @app.route('/api/scatter-data', methods=['GET'])
 def get_scatter_data():
-    """Get data for scatter plots"""
-    feature = request.args.get('feature', 'GrLivArea')
+    """Get data for 2D scatter plots with color encoding"""
+    x_feature = request.args.get('x', 'GrLivArea')
+    color_feature = request.args.get('color', 'OverallQual')
+    
+    if x_feature not in train_df.columns:
+        return jsonify({'error': f'Feature {x_feature} not found'}), 400
+    
+    if color_feature not in train_df.columns:
+        return jsonify({'error': f'Feature {color_feature} not found'}), 400
+    
+    data = train_df[[x_feature, 'SalePrice', color_feature]].dropna()
+    
+    if len(data) > 1000:
+        data = data.sample(n=1000, random_state=42)
+    
+    hover_text = []
+    for idx, row in data.iterrows():
+        hover_text.append(
+            f"{x_feature}: {row[x_feature]:,.0f}<br>" +
+            f"Sale Price: ${row['SalePrice']:,.0f}<br>" +
+            f"{color_feature}: {row[color_feature]}"
+        )
+    
+    return jsonify({
+        'x': data[x_feature].tolist(),
+        'prices': data['SalePrice'].tolist(),
+        'color_values': data[color_feature].tolist(),
+        'hover_text': hover_text,
+        'x_feature': x_feature,
+        'color_feature': color_feature
+    })
+
+@app.route('/api/3d-scatter-data', methods=['GET'])
+def get_3d_scatter_data():
+    """Get data for 3D scatter plot (X, Y axes, Z = SalePrice)"""
+    x_feature = request.args.get('x', 'GrLivArea')
+    y_feature = request.args.get('y', 'OverallQual')
+    
+    if x_feature not in train_df.columns:
+        return jsonify({'error': f'Feature {x_feature} not found'}), 400
+    
+    if y_feature not in train_df.columns:
+        return jsonify({'error': f'Feature {y_feature} not found'}), 400
+    
+    data = train_df[[x_feature, y_feature, 'SalePrice']].dropna()
+    
+    if len(data) > 500:
+        data = data.sample(n=500, random_state=42)
+    
+    hover_text = []
+    for idx, row in data.iterrows():
+        hover_text.append(
+            f"{x_feature}: {row[x_feature]:,.0f}<br>" +
+            f"{y_feature}: {row[y_feature]}<br>" +
+            f"Sale Price: ${row['SalePrice']:,.0f}"
+        )
+    
+    return jsonify({
+        'x': data[x_feature].tolist(),
+        'y': data[y_feature].tolist(),
+        'prices': data['SalePrice'].tolist(),
+        'hover_text': hover_text,
+        'x_feature': x_feature,
+        'y_feature': y_feature
+    })
+
+@app.route('/api/boxplot-data', methods=['GET'])
+def get_boxplot_data():
+    """Get data for box plots by category"""
+    feature = request.args.get('feature', 'Neighborhood')
 
     if feature not in train_df.columns:
         return jsonify({'error': 'Feature not found'}), 400
 
-    data = train_df[[feature, 'SalePrice']].dropna()
+    top_categories = train_df[feature].value_counts().head(10).index
+    filtered_data = train_df[train_df[feature].isin(top_categories)]
+
+    data_list = []
+    for category in top_categories:
+        prices = filtered_data[filtered_data[feature] == category]['SalePrice'].tolist()
+        data_list.append(prices)
 
     return jsonify({
-        'x': data[feature].tolist(),
-        'y': data['SalePrice'].tolist(),
+        'data': data_list,
+        'categories': top_categories.tolist(),
         'feature': feature
     })
 
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        # Get data from request
         data = request.get_json()
-
-        # Create DataFrame from input
         input_df = pd.DataFrame([data])
 
-        # Ensure all required features are present
         required_features = feature_info['features']
         numeric_cols = feature_info['numeric_cols']
         categorical_cols = feature_info['categorical_cols']
 
-        # Add missing columns with default values
         for col in required_features:
             if col not in input_df.columns:
                 if col in numeric_cols:
@@ -190,10 +277,8 @@ def predict():
                 else:
                     input_df[col] = imputation_values['categorical_modes'].get(col, 'None')
 
-        # Select only required features
         input_df = input_df[required_features]
 
-        # Handle any remaining missing values
         for col in numeric_cols:
             if col in input_df.columns and pd.isnull(input_df[col]).any():
                 input_df[col].fillna(imputation_values['numeric_medians'].get(col, 0), inplace=True)
@@ -202,7 +287,6 @@ def predict():
             if col in input_df.columns and pd.isnull(input_df[col]).any():
                 input_df[col].fillna(imputation_values['categorical_modes'].get(col, 'None'), inplace=True)
 
-        # Encode categorical variables
         X_numeric = input_df[numeric_cols].copy()
         X_encoded = X_numeric.copy()
 
@@ -213,16 +297,10 @@ def predict():
                 except:
                     X_encoded[col] = -1
 
-        # Ensure correct column order
         X_encoded = X_encoded[feature_info['all_features']]
-
-        # Scale features
         X_scaled = scaler.transform(X_encoded)
-
-        # Make prediction
         prediction = model.predict(X_scaled)[0]
 
-        # Calculate confidence range
         confidence_lower = prediction * 0.9
         confidence_upper = prediction * 1.1
 
@@ -245,10 +323,7 @@ def predict():
 
     except Exception as e:
         print("Error:", str(e))
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 400
+        return jsonify({'success': False, 'error': str(e)}), 400
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
